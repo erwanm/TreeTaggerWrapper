@@ -10,7 +10,10 @@ debug=0
 
 function usage {
   echo
-  echo "Usage: $progName [options] <lgge id> <input filename> <output filename>"
+  echo "Usage: $progName [options] <lgge id>"
+  echo
+  echo "  Reads input text from STDIN and writes tokenized text (one"
+  echo "  token by line) to STDOUT."
   echo
   echo "  Available language ids: '$lggesIds'"
   echo "   Options:"
@@ -32,19 +35,16 @@ while getopts 'ht:d' option ; do
     esac
 done
 shift $(($OPTIND - 1))
-if [ $# -ne 3 ]; then
-    echo "Error: 3 args expected" 1>&2
+if [ $# -ne 1 ]; then
+    echo "Error: 1 args expected" 1>&2
     printHelp=1
 fi
 lang="$1"
-input="$2"
-output="$3"
 if [ ! -z "$printHelp" ]; then
     usage 1>&2
     exit 1
 fi
 
-dieIfNoSuchFile "$input" "$progName,$LINENO: "
 dieIfNoSuchDir "$pathTreeTagger" "$progName,$LINENO: "
 memberList $lang "$lggeIds"
 if memberList $lang "$lggeIds"; then
@@ -65,7 +65,7 @@ if memberList $lang "$lggeIds"; then
     else
 	echo "$progName: Warning: no abbreviation file found for language '$lang'" 1>&2
     fi
-    cmd="cat \"$input\" | $pathTreeTagger/cmd/utf8-tokenize.perl $tokOptions | grep -v \"^$\" > \"$output\""
+    cmd="$pathTreeTagger/cmd/utf8-tokenize.perl $tokOptions | grep -v \"^$\" "
     if [ $debug -ne 0 ]; then
 	echo "$progName: command is '$cmd'" 1>&2
     fi

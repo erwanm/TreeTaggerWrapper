@@ -1,26 +1,35 @@
 #!/bin/bash
 
+source file-lib.sh
+source common-lib.sh
 
 
 progName=$(basename "$BASH_SOURCE")
 pathTreeTagger="$TREE_TAGGER_PATH"
 lggeIds="english spanish dutch french german russian italian"
+debug=0
+
+
 
 function usage {
   echo
-  echo "Usage: $progName [options] <lgge id> <tokenized input filename> <output filename>"
+  echo "Usage: $progName [options] <lgge id>"
   echo 
-  echo "  Valid language ids are: $lggeIds"
+  echo "  Reads TOKENIZED input from STDIN, and writes the 3-columns output to STDOUT."
+  echo "  The output from tree-tagger-tokenizer-wrapper.sh can be piped as input."
+  echo "  Valid language ids are: '$lggeIds'."
   echo
   echo "   Options:"
+  echo "     -d debug mode: print the command to STDERR"
   echo "     -t <path to TreeTagger> default: $pathTreeTagger"
   echo
 }
 
 
-while getopts 'ha:t:' option ; do 
+
+while getopts 'ht:d' option ; do 
     case $option in
-	"a" ) pathAUEB="$OPTARG";;
+	"d" ) debug=1;;
 	"t" ) pathTreeTagger="$OPTARG";;
 	"h" ) usage
  	      exit 0;;
@@ -30,70 +39,50 @@ while getopts 'ha:t:' option ; do
     esac
 done
 shift $(($OPTIND - 1))
-if [ $# -ne 3 ]; then
-    echo "Error: 3 args expected" 1>&2
+if [ $# -ne 1 ]; then
+    echo "Error: 1 args expected" 1>&2
     printHelp=1
 fi
 lang="$1"
-input="$2"
-output="$3"
 if [ ! -z "$printHelp" ]; then
     usage 1>&2
     exit 1
 fi
 
-if [ ! -f "$input" ]; then
-    echo "can not find input file '$input'" 1>&2
-    exit 2
-fi
 
-if [ "$lang" == "GR" ] || [ "$lang" == "greek" ] || [ "$lang" == "Greek" ]; then
-    echo "$progName: error Greek not supported anymore" 1>&2
-    exit 1
-#    AUEB-POSTagger-wrapper.sh "$pathAUEB" $optFineGrainedGR "$input" > "$output"
-elif  [ "$lang" == "SP" ] || [ "$lang" == "es" ] || [ "$lang" == "spanish" ] || [ "$lang" == "Spanish" ]; then
-    tmpErr=$(mktemp --tmpdir)
-    cat "$input" | $pathTreeTagger/bin/tree-tagger -token $pathTreeTagger/lib/spanish-utf8.par > "$output" 2>$tmpErr
-    if [ $(cat $tmpErr | wc -l) -ne 3 ]; then
-	echo "$progName: Something went wrong, check $tmpErr" 1>&2
-	exit 5
-    fi
-    rm -f $tmpErr
-elif  [ "$lang" == "FR" ] || [ "$lang" == "fr" ] || [ "$lang" == "french" ] || [ "$lang" == "French" ]; then
-    tmpErr=$(mktemp --tmpdir)
-    cat "$input" | $pathTreeTagger/bin/tree-tagger -token $pathTreeTagger/lib/french-utf8.par > "$output" 2>$tmpErr
-    if [ $(cat $tmpErr | wc -l) -ne 3 ]; then
-	echo "$progName: Something went wrong, check $tmpErr" 1>&2
-	exit 5
-    fi
-    rm -f $tmpErr
-elif  [ "$lang" == "DU" ] || [ "$lang" == "du" ] || [ "$lang" == "dutch" ] || [ "$lang" == "Dutch" ]; then
-    tmpErr=$(mktemp --tmpdir)
-    cat "$input" | $pathTreeTagger/bin/tree-tagger -token $pathTreeTagger/lib/dutch-utf8.par > "$output" 2>$tmpErr
-    if [ $(cat $tmpErr | wc -l) -ne 3 ]; then
-	echo "$progName: Something went wrong, check $tmpErr" 1>&2
-	exit 5
-    fi
-    rm -f $tmpErr
-else
-    if [ "$lang" != "EN" ] && [ "$lang" != "en" ] && [ "$lang" != "english" ] && [ "$lang" != "English" ]; then
-	echo "$progName: Warning: unknown language id $lang. English parsing will be performed." 1>&2
-    fi
-    engTTParFile="$pathTreeTagger/lib/english-utf8.par"
-    if [ ! -f "$engTTParFile" ]; then
-	if [ -f "$pathTreeTagger/lib/english.par" ]; then
-	    engTTParFile="$pathTreeTagger/lib/english.par"
-	else
-	    echo "$progName: error, no TreeTagger .par file  '$engTTParFile' or '$pathTreeTagger/lib/english.par'" 1>&2
-	    exit 45
+dieIfNoSuchDir "$pathTreeTagger" "$progName,$LINENO: "
+memberList $lang "$lggeIds"
+if memberList $lang "$lggeIds"; then
+    paramFile="$pathTreeTagger/lib/${lang}-utf8.par"
+    if [ ! -f "$paramFile" ]; then
+	paramFile="$pathTreeTagger/lib/${lang}.par"
+	if [ ! -f "$paramFile" ]; then
+	    echo "$progName: Error, cannot find TreeTagger parameter file ${lang}-utf8.par or ${lang}.par in $pathTreeTagger/lib" 1>&2
+	    exit 4
 	fi
     fi
-    tmpErr=$(mktemp --tmpdir)
-    cat "$input" | $pathTreeTagger/bin/tree-tagger -token $engTTParFile   2>$tmpErr | perl -pe 's/\tV[BDHV]/\tVB/;s/\tIN\/that/\tIN/;'  > "$output"
+    tmpErr=$(mktemp "$progName.XXXXXXXX.err")
+    cmd="$pathTreeTagger/bin/tree-tagger -token -lemma \"$paramFile\"  2>\"$tmpErr\""
+    if [ $lang == "english" ]; then # for some reason, english and german require some postprocessing (see scripts cmd/tree-tagger-<lang>)
+	cmd="$cmd | perl -pe 's/\tV[BDHV]/\tVB/;s/\tIN\/that/\tIN/;'"
+    elif [ $lang == "german" ]; then
+	cmd="$cmd | $pathTreeTagger/cmd/filter-german-tags"
+    fi
+    if [ $debug -ne 0 ]; then
+	echo "$progName: command is '$cmd'" 1>&2
+    fi
+    evalSafe "$cmd" "$progName,$LINENO: "
     if [ $(cat $tmpErr | wc -l) -ne 3 ]; then
-	echo "$progName: Something went wrong, check $tmpErr" 1>&2
+	echo "$progName: an error occured, STDERR is:" 1>&2
+	cat "$tmpErr" 1>&2
+	rm -f "$tmpErr"
 	exit 5
     fi
-    rm -f $tmpErr
+    rm -f "$tmpErr"
+else
+    echo "$progName: Error, language '$lang' not recognized" 1>&2
+    exit 4
 fi
+
+
 
