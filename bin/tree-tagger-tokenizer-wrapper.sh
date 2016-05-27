@@ -15,7 +15,7 @@ function usage {
   echo "  Reads input text from STDIN and writes tokenized text (one"
   echo "  token by line) to STDOUT."
   echo
-  echo "  Available language ids: '$lggesIds'"
+  echo "  Available language ids: '$lggeIds'"
   echo "   Options:"
   echo "     -d debug mode: print the command to STDERR"
   echo "     -t <path to TreeTagger> default: $pathTreeTagger"
@@ -65,7 +65,8 @@ if memberList $lang "$lggeIds"; then
     else
 	echo "$progName: Warning: no abbreviation file found for language '$lang'" 1>&2
     fi
-    cmd="$pathTreeTagger/cmd/utf8-tokenize.perl $tokOptions | grep -v \"^$\" "
+    # remark: the sed command removes the BOM marker if any
+    cmd="sed '1 s/\xEF\xBB\xBF//' | $pathTreeTagger/cmd/utf8-tokenize.perl $tokOptions | grep -v \"^$\" "
     if [ $debug -ne 0 ]; then
 	echo "$progName: command is '$cmd'" 1>&2
     fi

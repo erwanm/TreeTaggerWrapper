@@ -8,6 +8,7 @@ source file-lib.sh
 progName=$(basename "$BASH_SOURCE")
 languages="english dutch spanish french german italian russian"
 chunkers=
+oldVersion=
 
 function usage {
   echo
@@ -17,6 +18,8 @@ function usage {
   echo
   echo "  Options:"
   echo "    -l <list of languages (space separated)> default: '$languages'"
+  echo "    -o use old version (in case TreeTagger gives the error message:"
+  echo "       'FATAL: kernel too old')"
   echo "    -h this help"
   echo
 }
@@ -24,10 +27,11 @@ function usage {
 
 
 OPTIND=1
-while getopts 'h' option ; do 
+while getopts 'ho' option ; do 
     case $option in
 	"h" ) usage
  	      exit 0;;
+	"o" ) oldVersion=1;;
 	"?" ) 
 	    echo "Error, unknow option." 1>&2
             printHelp=1;;
@@ -46,7 +50,11 @@ fi
 dir="$1"
 mkdirSafe "$1" "$progName,$LINENO: "
 pushd "$dir" >/dev/null
-evalSafe "wget http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/tree-tagger-linux-3.2.tar.gz" "$progName,$LINENO: "
+if [ -z "$oldVersion" ]; then
+    evalSafe "wget http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/tree-tagger-linux-3.2.tar.gz" "$progName,$LINENO: "
+else
+    evalSafe "wget http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/tree-tagger-linux-3.2-old.tar.gz"  "$progName,$LINENO: "
+fi
 evalSafe "wget http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/tagger-scripts.tar.gz" "$progName,$LINENO: "
 evalSafe "wget http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/install-tagger.sh" "$progName,$LINENO: "
 for lang in $languages; do
