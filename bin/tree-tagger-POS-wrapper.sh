@@ -61,7 +61,7 @@ if memberList $lang "$lggeIds"; then
 	    exit 4
 	fi
     fi
-    tmpErr=$(mktemp "$progName.XXXXXXXX.err")
+    tmpErr=$(mktemp --tmpdir "$progName.XXXXXXXX.err")
     cmd="$pathTreeTagger/bin/tree-tagger -token -lemma \"$paramFile\"  2>\"$tmpErr\""
     if [ $lang == "english" ]; then # for some reason, english and german require some postprocessing (see scripts cmd/tree-tagger-<lang>)
 	cmd="$cmd | perl -pe 's/\tV[BDHV]/\tVB/;s/\tIN\/that/\tIN/;'"
