@@ -58,7 +58,7 @@ fi
 evalSafe "wget http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/tagger-scripts.tar.gz" "$progName,$LINENO: "
 evalSafe "wget http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/install-tagger.sh" "$progName,$LINENO: "
 for lang in $languages; do
-    evalSafe "wget http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/${lang}-par-linux-3.2-utf8.bin.gz" "$progName,$LINENO: "
+    evalSafe "wget http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/${lang}.par.gz" "$progName,$LINENO: "
 done
 evalSafe "bash install-tagger.sh" "$progName,$LINENO: "
 
