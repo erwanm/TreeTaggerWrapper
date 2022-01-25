@@ -51,7 +51,7 @@ dir="$1"
 mkdirSafe "$1" "$progName,$LINENO: "
 pushd "$dir" >/dev/null
 if [ -z "$oldVersion" ]; then
-    evalSafe "wget http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/tree-tagger-linux-3.2.tar.gz" "$progName,$LINENO: "
+    evalSafe "wget http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/tree-tagger-linux-3.2.4.tar.gz" "$progName,$LINENO: "
 else
     evalSafe "wget http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/tree-tagger-linux-3.2-old.tar.gz"  "$progName,$LINENO: "
 fi
